@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -10,6 +11,16 @@ import (
 )
 
 type server struct{}
+
+func (*server) Blog(ctx context.Context, req *blogpb.BlogRequest) (*blogpb.BlogResponse, error) {
+	fmt.Printf("Blog function was invoked with %v\n", req)
+	authorId := req.GetBlog().GetAuthorId()
+	result := "Hello " + authorId
+	res := &blogpb.BlogResponse{
+		Result: result,
+	}
+	return res, nil
+}
 
 func main() {
 	fmt.Println("Hello World!")

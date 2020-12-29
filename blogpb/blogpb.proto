@@ -1,25 +1,24 @@
 syntax = "proto3";
 
 package blog;
-
 option go_package = "github.com/rsomcio/blog/blogpb";
 
-// message Blog {
-//   string id = 1;
-//   string author_id = 2;
-//   string title = 3;
-//   string content = 4;
-// }
+message Blog {
+  string id = 1;
+  string author_id = 2;
+  string title = 3;
+  string content = 4;
+}
 
-// message BlogRequest {
-//   Blog blog = 1;
-// }
+message BlogRequest {
+  Blog blog = 1;
+}
 
-// message BlogResponse {
-//   string result = 1;
-// }
+message BlogResponse {
+  string result = 1;
+}
 
 service BlogService {
   // Unary
-  // rpc Blog(BlogRequest) returns (BlogResponse) {};
+  rpc Blog(BlogRequest) returns (BlogResponse) {};
 }
