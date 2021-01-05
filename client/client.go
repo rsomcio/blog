@@ -10,32 +10,23 @@ import (
 )
 
 func main() {
-	fmt.Println("Hello I'm a client")
+	fmt.Println("Blog client")
 	cc, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("could not connect: %v", err)
+		log.Fatalf("could not connect: %v\n", err)
 	}
 	defer cc.Close()
 
 	c := blogpb.NewBlogServiceClient(cc)
 
-	doUnary(c)
-}
-
-func doUnary(c blogpb.BlogServiceClient) {
-	fmt.Println("Starting to do a Undary RPC")
-	req := &blogpb.BlogRequest{
-		Blog: &blogpb.Blog{
-			Id:       "5",
-			AuthorId: "rsomcio",
-			Title:    "When doves cry",
-			Content:  "A Prince song.",
-		},
+	blog := &blogpb.Blog{
+		AuthorId: "ray",
+		Title:    "my first blog",
+		Content:  "content of my first blog",
 	}
-	res, err := c.Blog(context.Background(), req)
+	createBlogRes, err := c.CreateBlog(context.Background(), &blogpb.CreateBlogRequest{Blog: blog})
 	if err != nil {
-		log.Fatalf("error while calling Blog RPC: %v", err)
+		log.Fatalf("Unexpected error: %v\n", err)
 	}
-	log.Printf("Response from Blog: %v", res.Result)
-
+	fmt.Printf("Blog has been created: %v\n", createBlogRes)
 }

@@ -7,21 +7,73 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/rsomcio/blog/blogpb"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type server struct{}
 
-func (*server) Blog(ctx context.Context, req *blogpb.BlogRequest) (*blogpb.BlogResponse, error) {
-	fmt.Printf("Blog function was invoked with %v\n", req)
-	authorID := req.GetBlog().GetAuthorId()
-	result := "Hello " + authorID
-	res := &blogpb.BlogResponse{
-		Result: result,
+type blogItem struct {
+	ID       primitive.ObjectID `bson:"_id,omitempty"`
+	AuthorID string             `bson:"author_id"`
+	Title    string             `bson:"title"`
+	Content  string             `bson:"content"`
+}
+
+func (*server) CreateBlog(ctx context.Context, req *blogpb.CreateBlogRequest) (*blogpb.CreateBlogResponse, error) {
+	// get blog from request
+	blog := req.GetBlog()
+
+	// construct blog struct
+	data := blogItem{
+		AuthorID: blog.GetAuthorId(),
+		Title:    blog.GetTitle(),
+		Content:  blog.GetContent(),
 	}
-	return res, nil
+
+	// insert into mongodb
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
+		"mongodb+srv://rsomcio007:2Vh1AMOqMnbnbrT2@cluster0.x9vns.mongodb.net/sample_blog?retryWrites=true&w=majority",
+	))
+	collection := client.Database("sample_blog").Collection("blogs")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := collection.InsertOne(context.Background(), data)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Internal error: %v", err),
+		)
+	}
+	oid, ok := res.InsertedID.(primitive.ObjectID)
+	if !ok {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Cannot convert to OID"),
+		)
+	}
+
+	return &blogpb.CreateBlogResponse{
+		Blog: &blogpb.Blog{
+			Id:       oid.Hex(),
+			AuthorId: blog.GetAuthorId(),
+			Title:    blog.GetTitle(),
+			Content:  blog.GetContent(),
+		},
+	}, nil
 }
 
 func main() {
